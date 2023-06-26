@@ -112,7 +112,7 @@ $response = "The selected dropdown value is: " . $dropdown;
             <a class="nav-link active" href="#">Dashboard</a>
           </li>
           <li class="nav-item py-4">
-            <a class="nav-link" href="#">Orders  <?php echo $_SESSION['dropdown']; ?></a>
+            <a class="nav-link" href="#">Orders <span id="status"></span></a>
           </li>
           <li class="nav-item py-4">
             <a class="nav-link" href="#">Products </a>
@@ -171,53 +171,81 @@ $response = "The selected dropdown value is: " . $dropdown;
       datePickerContainer.empty();
 
       if (option === 'daily') {
-        var datePicker = $('<input>').attr('type', 'date').attr('name', 'date');
-        datePickerContainer.append(datePicker);
+        var datePicker='<input type="date" class="daily">';
+        var button ='<button class="btn btn-success ml-2 filter" data-q="daily">Filter</button>'
+        datePickerContainer.append(datePicker,button);
         //$incomeSql="SELECT i.amount, i.date, i.description, ic.name AS name FROM Income AS i JOIN Income_Category AS ic ON i.category_id = ic.in_cat_id WHERE i.user_info_id = $user_id AND i.date = '2023-05-10'";
       } else if (option === 'monthly') {
-        var monthPicker = $('<input>').attr('type', 'month').attr('name', 'month');
-        datePickerContainer.append(monthPicker, yearPicker);
+        var monthPicker='<input type="month" class="month" >';
+        var button ='<button class="btn btn-success ml-2 filter" data-q="monthly">Filter</button>'
+        datePickerContainer.append(monthPicker,button);
       } else if (option === 'annual') {
-        var yearPicker = $('<input>').attr('type', 'number').attr('placeholder', 'Year').attr('name', 'year');
-        datePickerContainer.append(yearPicker);
+        var yearPicker='<input type="number" class="annual" min="1900" max="2100" placeholder="Enter a year">';
+        var button ='<button class="btn btn-success ml-2 filter" data-q="annual">Filter</button>'
+        datePickerContainer.append(yearPicker,button);
       } else if (option === 'between2') {
-        var fromDatePicker = $('<input>').attr('type', 'date').attr('name', 'fromDate');
-        var toDatepicker = $('<input>').attr('type', 'date').attr('name', 'toDate');
-        datePickerContainer.append(fromDatePicker, 'To', toDatepicker);
+        var fromDatePicker = '<input type="date" class="fromDate" >'
+        var toDatepicker = '<input type="date" class="toDate" >'
+        var button ='<button class="btn btn-success ml-2 filter" data-q="between2">Filter</button>'
+        datePickerContainer.append(fromDatePicker, 'To', toDatepicker,button);
       }
     }
 
-    $(document).ready(function() {
-      $('.dropdown-item').click(function(e) {
-        e.preventDefault();
-        var selectedOption = $(this).data('value');
-        console.log(selectedOption);
-        // Add console log statement
-        console.log("AJAX request triggered");
-
-
-        // Send AJAX request
-        $.ajax({
-          url: 'testDashboard.php',
-          method: 'POST',
-          data: { dropdown: selectedOption },
-          success: function(response) {
-          // Handle the response from the server
-          $('#dropdown-value').text(response);
-          showDatePicker(selectedOption);
-          // Refresh the page to display the updated PHP variable
-          //window.location.reload();
-        }
-      });
-
-      // Assign the selectedOption value to the PHP variable
-      $.post('updateDropdown.php', { dropdown: selectedOption }, function(response) {
-        console.log(response);
-      });
-
-      $('.dropdown-toggle').dropdown('toggle');
+$(document).ready(function() {
+  $(document).on('click', '.dropdown-item', function(){
+      var selectedOption = $(this).data('value');
+      showDatePicker(selectedOption);
+      $('#status').text(selectedOption);
     });
+
+  $(document).on('click', '.filter', function() {
+    var option = $(this).data('q');
+    var daily=$('.daily').val();
+
+    var monthly=$('.month').val();
+    var date = new Date(monthly);
+    var month = date.getMonth() + 1; 
+
+    var annual=$('.annual').val();
+    var form=$('.fromDate').val();
+    var to=$('.toDate').val();
+
+    var query=null;
+    if(option==='daily')
+    {
+      query=`SELECT i.amount, i.date, i.description, ic.name AS name FROM Income AS i JOIN income_Category AS ic ON i.category_id = ic.in_cat_id WHERE i.user_info_id = <?php echo $user_id; ?> AND i.date ='${daily}';`;
+    }else if(option==='monthly')
+    {
+      query=`SELECT i.amount, i.date, i.description, ic.name AS name FROM Income AS i JOIN income_Category AS ic ON i.category_id = ic.in_cat_id WHERE i.user_info_id = <?php echo $user_id; ?> AND MONTH(i.date) ='${month}';`;
+    }else if(option==='annual')
+    {
+      query=`SELECT i.amount, i.date, i.description, ic.name AS name FROM Income AS i JOIN income_Category AS ic ON i.category_id = ic.in_cat_id WHERE i.user_info_id = <?php echo $user_id; ?> AND YEAR(i.date) ='${annual}';`;
+    }
+    else if(option==='between2')
+    {
+      query=`SELECT i.amount, i.date, i.description, ic.name AS name FROM Income AS i JOIN income_Category AS ic ON i.category_id = ic.in_cat_id WHERE i.user_info_id = <?php echo $user_id; ?> AND i.date BETWEEN '${form}' AND '${to}';`;
+    }
+
+    $.ajax({
+      url: 'ajax_get.php',
+      method: 'GET',
+      data: {
+        query: query
+      },
+      success: function(response) {
+        // Handle the response here
+        console.log(response);
+      },
+      error: function() {
+        // Handle errors here
+        console.error('AJAX request failed');
+      }
+    });
+
+
   });
+});
+
 
 
   </script>
